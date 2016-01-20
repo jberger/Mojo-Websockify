@@ -9,7 +9,7 @@ use Mojo::Util 'term_escape';
 
 has ioloop => sub { Mojo::IOLoop->singleton };
 
-has [qw/address port tcp tx/];
+has [qw/address port tx/];
 
 sub close {
   my $self = shift;
@@ -33,7 +33,6 @@ sub open {
       my ($loop, $err, $tcp) = @_;
 
       #TODO handler $err
-      $self->tcp($tcp);
 
       $tcp->on(read => sub {
         my ($tcp, $bytes) = @_;
@@ -52,7 +51,7 @@ sub open {
         $reason ||= '';
         warn term_escape "-- Websocket Connection closed. Code: $code ($reason)\n" if DEBUG;
         $tcp->close;
-        $self->tcp(undef $tcp);
+        undef $tcp;
         $self->tx(undef $tx);
       });
 
