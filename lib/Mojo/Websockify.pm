@@ -9,16 +9,10 @@ use Mojo::Util 'term_escape';
 
 has ioloop => sub { Mojo::IOLoop->singleton };
 
-has [qw/address port tx/];
-
-sub close {
-  my $self = shift;
-  return unless my $tx = $self->tx;
-  $tx->finish(@_);
-}
+has [qw/address port/];
 
 sub open {
-  my ($self, $cb) = @_;
+  my ($self, $tx, $cb) = @_;
   $cb ||= sub{};
 
   my %args = (
@@ -26,7 +20,6 @@ sub open {
     port    => $self->port,
   );
   my $loop = $self->ioloop;
-  my $tx = $self->tx;
   $loop->delay(
     sub { $loop->client(%args, shift->begin) },
     sub {
@@ -52,7 +45,7 @@ sub open {
         warn term_escape "-- Websocket Connection closed. Code: $code ($reason)\n" if DEBUG;
         $tcp->close;
         undef $tcp;
-        $self->tx(undef $tx);
+        undef $tx;
       });
 
       $self->$cb(undef, $tcp);

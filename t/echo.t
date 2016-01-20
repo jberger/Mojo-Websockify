@@ -19,12 +19,11 @@ websocket '/socket' => sub {
   my $c = shift->render_later;
   $c->on(finish => sub { warn 'ws finished' });
   my $ws = Mojo::Websockify->new(
-    tx => $c->tx,
     address => '127.0.0.1',
     port => $port,
   );
   Mojo::IOLoop->delay(
-    sub { $ws->open(shift->begin) },
+   sub { $ws->open($c->tx, shift->begin) },
   )->wait;
 };
 
