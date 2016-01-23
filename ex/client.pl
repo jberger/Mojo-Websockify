@@ -1,3 +1,10 @@
+## This example does not use Mojo::Websockify, it is a demo of how to
+## "roll your own" tcp<->websocket bridge
+##
+## To run it clone the repo if you haven't already and cd to the "ex" directory, the
+## start it using the Mojolicious daemon (or other start method http://mojolicious.org/perldoc/Mojolicious/Guides/Cookbook#DEPLOYMENT)
+## $ perl client.pl daemon
+
 use Mojolicious::Lite;
 
 use Mojo::IOLoop;
