@@ -40,7 +40,7 @@ sub open {
       });
 
       $tx->on(finish => sub {
-        my ($tx, $code, $reason) = @_;
+        my (undef, $code, $reason) = @_;
         $reason ||= '';
         warn term_escape "-- Websocket Connection closed. Code: $code ($reason)\n" if DEBUG;
         $tcp->close;
