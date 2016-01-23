@@ -1,6 +1,6 @@
 package Mojo::Websockify;
 
-use Mojo::Base -base;
+use Mojo::Base 'Mojo::EventEmitter';
 
 use constant DEBUG => $ENV{MOJO_WEBSOCKIFY_DEBUG} || 0;
 
@@ -13,7 +13,6 @@ has [qw/address port/];
 
 sub open {
   my ($self, $tx, $cb) = @_;
-  $cb ||= sub{};
 
   my %args = (
     address => $self->address,
@@ -25,7 +24,8 @@ sub open {
     sub {
       my ($loop, $err, $tcp) = @_;
 
-      #TODO handler $err
+      $self->emit(error => "TCP connection error: $err") if $err;
+      $tcp->on(error => sub { $self->emit(error => "TCP error: $_[1]") });
 
       $tcp->on(read => sub {
         my ($tcp, $bytes) = @_;
@@ -48,7 +48,7 @@ sub open {
         undef $tx;
       });
 
-      $self->$cb(undef, $tcp);
+      $self->$cb(undef, $tcp) if $cb;
     },
   )->catch(sub { $self->$cb($_[1], undef) })->wait;
 

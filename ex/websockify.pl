@@ -1,6 +1,7 @@
 use Mojolicious::Lite;
 
 use Mojo::IOLoop;
+use Mojo::Websockify;
 
 websocket '/proxy' => sub {
   my $c = shift;
@@ -12,28 +13,9 @@ websocket '/proxy' => sub {
   my $host = $c->param('target') || '127.0.0.1';
   my $port = $host =~ s/:(\d+)$// ? $1 : 5901;
 
-  Mojo::IOLoop->client(address => $host, port => $port, sub {
-    my ($loop, $err, $tcp) = @_;
-
-    $tx->finish(4500, "TCP connection error: $err") if $err;
-    $tcp->on(error => sub { $tx->finish(4500, "TCP error: $_[1]") });
-
-    $tcp->on(read => sub {
-      my ($tcp, $bytes) = @_;
-      $tx->send({binary => $bytes});
-    });
-
-    $tx->on(binary => sub {
-      my ($tx, $bytes) = @_;
-      $tcp->write($bytes);
-    });
-
-    $tx->on(finish => sub {
-      $tcp->close;
-      undef $tcp;
-      undef $tx;
-    });
-  });
+  my $ws = Mojo::Websockify->new(address => $host, port => $port);
+  $ws->on(error => sub { $tx->finish(4500, $_[1]) });
+  $ws->open($tx);
 };
 
 get '/*target' => sub {
