@@ -27,15 +27,25 @@ sub open {
       $self->emit(error => "TCP connection error: $err") if $err;
       $tcp->on(error => sub { $self->emit(error => "TCP error: $_[1]") });
 
+      my $pause = do {
+        my $ws_stream = Mojo::IOLoop->stream($c->tx->connection);
+        my $unpause = sub { $tcp->start; $ws_stream->start };
+        $ws_stream->on(drain => $unpause);
+        $tcp->on(drain => $unpause);
+        sub { $tcp->stop; $ws_stream->stop };
+      };
+
       $tcp->on(read => sub {
         my ($tcp, $bytes) = @_;
         warn term_escape "-- TCP >>> WebSocket ($bytes)\n" if DEBUG;
+        $pause->();
         $tx->send({binary => $bytes});
       });
 
       $tx->on(binary => sub {
         my ($tx, $bytes) = @_;
         warn term_escape "-- TCP <<< WebSocket ($bytes)\n" if DEBUG;
+        $pause->();
         $tcp->write($bytes);
       });
 
@@ -50,7 +60,7 @@ sub open {
 
       $self->$cb(undef, $tcp) if $cb;
     },
-  )->catch(sub { $self->$cb($_[1], undef) })->wait;
+  )->tap(on => error => sub { $self->$cb($_[1], undef) })->wait;
 
   return $self;
 }
